@@ -1,0 +1,92 @@
+name: Build Raptor for T31 (T8410X)
+
+on:
+  push:
+    branches: [t8410x-low-latency, main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake make gcc g++ curl tar \
+            autoconf automake libtool \
+            meson ninja-build \
+            pkg-config
+
+      - name: Build Raptor for T31
+        run: |
+          chmod +x build-standalone.sh
+          ./build-standalone.sh t31 --release
+
+      - name: Prepare release package
+        run: |
+          mkdir -p package
+          cp -r build/* package/
+          cp t8410x/config/raptor.conf package/
+          cp t8410x/deploy/deploy.sh package/
+          cp t8410x/deploy/start-raptor.sh package/
+          chmod +x package/deploy.sh package/start-raptor.sh
+          tar -czf raptor-t31-t8410x.tar.gz -C package .
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: raptor-t31-t8410x
+          path: raptor-t31-t8410x.tar.gz
+          retention-days: 30
+
+      - name: Upload individual binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: raptor-binaries
+          path: build/
+          retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/t8410x-low-latency'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: raptor-t31-t8410x
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: "Raptor T31 Build #${{ github.run_number }}"
+          body: |
+            Automated build of Raptor Streaming System for T31 (Eufy T8410X).
+
+            ## Usage
+            ```bash
+            tar xzf raptor-t31-t8410x.tar.gz
+            ./deploy.sh <camera_ip>
+            ```
+
+            ## Streaming
+            - WebRTC (lowest latency): `http://<camera_ip>/webrtc`
+            - RTSP: `rtsp://<camera_ip>/stream0`
+          files: raptor-t31-t8410x.tar.gz
+          draft: false
+          prerelease: true

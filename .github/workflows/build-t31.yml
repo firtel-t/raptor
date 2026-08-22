@@ -32,7 +32,9 @@ jobs:
           chmod +x build-standalone.sh
           # Fix: the compy header copy loop fails when FetchContent deps
           # don't have *.h in their root. Add '|| true' to the failing cp lines.
-          sed -i 's|cp -f "\$builddir/_deps/\${dep}-src/"\*\.h "\$SYSROOT_DIR/usr/include/"|cp -f "\$builddir/_deps/\${dep}-src/"*.h "\$SYSROOT_DIR/usr/include/" 2>/dev/null || true|g' build-standalone.sh
+          sed -i '/for dep in slice99 datatype99 interface99 metalang99/,/^[[:space:]]*done/{
+            /cp -f.*\${dep}-src/s/$/ 2>\/dev\/null || true/
+          }' build-standalone.sh
           ./build-standalone.sh t31 --release
 
       - name: Prepare release package

@@ -104,6 +104,48 @@ install_config() {
     fi
 }
 
+generate_tls_cert() {
+    # WebRTC (RWD) requires a TLS certificate for DTLS-SRTP.
+    # Generate a self-signed cert if one doesn't exist.
+    local CERT_DIR="/etc/raptor"
+    local CERT_FILE="${CERT_DIR}/tls_cert.pem"
+    local KEY_FILE="${CERT_DIR}/tls_key.pem"
+
+    if [ -f "${CERT_FILE}" ] && [ -f "${KEY_FILE}" ]; then
+        info "TLS certificate already exists, skipping generation"
+        return
+    fi
+
+    info "Generating self-signed TLS certificate for WebRTC..."
+    mkdir -p "${CERT_DIR}"
+
+    # Check if openssl is available (it should be on Thingino)
+    if command -v openssl >/dev/null 2>&1; then
+        openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+            -keyout "${KEY_FILE}" -out "${CERT_FILE}" \
+            -days 3650 -nodes -batch \
+            -subj "/CN=raptor-cam" 2>/dev/null
+    elif command -v certtool >/dev/null 2>&1; then
+        # Alternative: GnuTLS certtool (sometimes available on embedded)
+        certtool --generate-privkey --ecc --outfile "${KEY_FILE}" 2>/dev/null
+        certtool --generate-self-signed --load-privkey "${KEY_FILE}" \
+            --outfile "${CERT_FILE}" \
+            --template /dev/null 2>/dev/null
+    else
+        # Last resort: use mbedtls gen_key if shipped with raptor
+        # or just create placeholder - RWD may generate its own at runtime
+        info "WARNING: No certificate tool found. WebRTC may not work."
+        info "Install openssl or generate certs manually:"
+        info "  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \\"
+        info "    -keyout ${KEY_FILE} -out ${CERT_FILE} -days 3650 -nodes -batch"
+        return
+    fi
+
+    chmod 600 "${KEY_FILE}"
+    chmod 644 "${CERT_FILE}"
+    info "TLS certificate generated at ${CERT_DIR}/"
+}
+
 install_init_script() {
     info "Installing init script..."
     cat > "${INIT_DIR}/S31raptor" << 'EOF'
@@ -207,6 +249,7 @@ stop_prudynt
 install_binaries
 install_libraries
 install_config
+generate_tls_cert
 install_init_script
 disable_prudynt
 start_raptor

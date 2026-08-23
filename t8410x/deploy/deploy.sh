@@ -69,12 +69,23 @@ else
 fi
 
 # Transfer config
-echo "[5/6] Transferring raptor.conf..."
+echo "[5/6] Transferring raptor.conf and TLS certs..."
 if [ -f "${SCRIPT_DIR}/raptor.conf" ]; then
     scp -q "${SCRIPT_DIR}/raptor.conf" "${CAMERA_USER}@${CAMERA_IP}:${REMOTE_CONF}/raptor.conf"
     echo "  Config transferred"
 else
     echo "  WARNING: raptor.conf not found, using camera default"
+fi
+
+# Transfer TLS certificate for WebRTC
+ssh "${CAMERA_USER}@${CAMERA_IP}" "mkdir -p /etc/raptor"
+if [ -d "${SCRIPT_DIR}/certs" ]; then
+    scp -q "${SCRIPT_DIR}/certs/tls_cert.pem" "${CAMERA_USER}@${CAMERA_IP}:/etc/raptor/tls_cert.pem"
+    scp -q "${SCRIPT_DIR}/certs/tls_key.pem" "${CAMERA_USER}@${CAMERA_IP}:/etc/raptor/tls_key.pem"
+    ssh "${CAMERA_USER}@${CAMERA_IP}" "chmod 600 /etc/raptor/tls_key.pem"
+    echo "  TLS certificate transferred"
+else
+    echo "  WARNING: No certs/ directory found. WebRTC may not work."
 fi
 
 # Transfer and install start script

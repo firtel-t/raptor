@@ -106,44 +106,33 @@ install_config() {
 
 generate_tls_cert() {
     # WebRTC (RWD) requires a TLS certificate for DTLS-SRTP.
-    # Generate a self-signed cert if one doesn't exist.
+    # Certs are pre-generated at build time and included in the package.
     local CERT_DIR="/etc/raptor"
     local CERT_FILE="${CERT_DIR}/tls_cert.pem"
     local KEY_FILE="${CERT_DIR}/tls_key.pem"
 
-    if [ -f "${CERT_FILE}" ] && [ -f "${KEY_FILE}" ]; then
-        info "TLS certificate already exists, skipping generation"
-        return
-    fi
-
-    info "Generating self-signed TLS certificate for WebRTC..."
     mkdir -p "${CERT_DIR}"
 
-    # Check if openssl is available (it should be on Thingino)
-    if command -v openssl >/dev/null 2>&1; then
-        openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
-            -keyout "${KEY_FILE}" -out "${CERT_FILE}" \
-            -days 3650 -nodes -batch \
-            -subj "/CN=raptor-cam" 2>/dev/null
-    elif command -v certtool >/dev/null 2>&1; then
-        # Alternative: GnuTLS certtool (sometimes available on embedded)
-        certtool --generate-privkey --ecc --outfile "${KEY_FILE}" 2>/dev/null
-        certtool --generate-self-signed --load-privkey "${KEY_FILE}" \
-            --outfile "${CERT_FILE}" \
-            --template /dev/null 2>/dev/null
-    else
-        # Last resort: use mbedtls gen_key if shipped with raptor
-        # or just create placeholder - RWD may generate its own at runtime
-        info "WARNING: No certificate tool found. WebRTC may not work."
-        info "Install openssl or generate certs manually:"
-        info "  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \\"
-        info "    -keyout ${KEY_FILE} -out ${CERT_FILE} -days 3650 -nodes -batch"
+    if [ -f "${CERT_FILE}" ] && [ -f "${KEY_FILE}" ]; then
+        info "TLS certificate already exists, skipping"
         return
     fi
 
-    chmod 600 "${KEY_FILE}"
-    chmod 644 "${CERT_FILE}"
-    info "TLS certificate generated at ${CERT_DIR}/"
+    # Install from package (generated during CI build)
+    if [ -d "${INSTALL_DIR}/certs" ]; then
+        info "Installing TLS certificate for WebRTC..."
+        cp -f "${INSTALL_DIR}/certs/tls_cert.pem" "${CERT_FILE}"
+        cp -f "${INSTALL_DIR}/certs/tls_key.pem" "${KEY_FILE}"
+        chmod 600 "${KEY_FILE}"
+        chmod 644 "${CERT_FILE}"
+    else
+        info "WARNING: No TLS certificate found in package."
+        info "WebRTC will not work without a certificate."
+        info "Generate on a PC and copy to camera:"
+        info "  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \\"
+        info "    -keyout tls_key.pem -out tls_cert.pem -days 3650 -nodes -batch"
+        info "  scp tls_*.pem root@<camera>:/etc/raptor/"
+    fi
 }
 
 install_init_script() {

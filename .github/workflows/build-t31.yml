@@ -39,7 +39,14 @@ jobs:
 
       - name: Prepare release package
         run: |
-          mkdir -p package
+          mkdir -p package/certs
+
+          # Generate self-signed TLS cert for WebRTC DTLS-SRTP
+          # (Thingino doesn't ship openssl CLI, so we generate at build time)
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+            -keyout package/certs/tls_key.pem -out package/certs/tls_cert.pem \
+            -days 3650 -nodes -batch -subj "/CN=raptor-cam"
+
           cp -r build/* package/
           cp t8410x/config/raptor.conf package/
           cp t8410x/deploy/deploy.sh package/

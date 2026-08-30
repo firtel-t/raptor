@@ -50,8 +50,9 @@ jobs:
           cp -r build/* package/
           cp t8410x/config/raptor.conf package/
           cp t8410x/deploy/deploy.sh package/
+          cp t8410x/deploy/local-install.sh package/
           cp t8410x/deploy/start-raptor.sh package/
-          chmod +x package/deploy.sh package/start-raptor.sh
+          chmod +x package/deploy.sh package/local-install.sh package/start-raptor.sh
           tar -czf raptor-t31-t8410x.tar.gz -C package .
 
       - name: Upload build artifacts

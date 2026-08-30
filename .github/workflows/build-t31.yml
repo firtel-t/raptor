@@ -49,10 +49,9 @@ jobs:
 
           cp -r build/* package/
           cp t8410x/config/raptor.conf package/
-          cp t8410x/deploy/deploy.sh package/
           cp t8410x/deploy/local-install.sh package/
           cp t8410x/deploy/start-raptor.sh package/
-          chmod +x package/deploy.sh package/local-install.sh package/start-raptor.sh
+          chmod +x package/local-install.sh package/start-raptor.sh
           tar -czf raptor-t31-t8410x.tar.gz -C package .
 
       - name: Upload build artifacts
@@ -78,9 +77,6 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout source for install script
-        uses: actions/checkout@v4
-
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -94,22 +90,18 @@ jobs:
           body: |
             Automated build of Raptor Streaming System for T31 (Eufy T8410X).
 
-            ## One-line install (on camera via SSH)
-            ```bash
-            curl -sSL https://github.com/firtel-t/raptor/releases/download/build-${{ github.run_number }}/install.sh | sh
-            ```
-
-            ## Or manual deploy (from PC)
-            ```bash
-            tar xzf raptor-t31-t8410x.tar.gz
-            ./deploy.sh <camera_ip>
-            ```
+            ## Install (manual)
+            1. Download `raptor-t31-t8410x.tar.gz` to your PC
+            2. Extract it
+            3. Copy the extracted folder to the camera (scp or SD card)
+            4. On the camera, run:
+               ```sh
+               sh local-install.sh
+               ```
 
             ## Streaming
             - WebRTC (lowest latency): `http://<camera_ip>/webrtc`
             - RTSP: `rtsp://<camera_ip>/stream0`
-          files: |
-            raptor-t31-t8410x.tar.gz
-            t8410x/install.sh
+          files: raptor-t31-t8410x.tar.gz
           draft: false
           prerelease: true

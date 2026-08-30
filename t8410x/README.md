@@ -4,13 +4,18 @@ Eufy IndoorCam E220 (T8410X) + Thingino 上で Raptor を使い、~55ms のWebRT
 
 ## クイックスタート
 
-1. [Releases](../../releases) から `raptor-t31-t8410x.tar.gz` をダウンロード
-2. デプロイ:
-   ```bash
-   tar xzf raptor-t31-t8410x.tar.gz
-   ./deploy.sh 192.168.1.xxx
+1. PCで [Releases](../../releases) から `raptor-t31-t8410x.tar.gz` をダウンロード
+2. 展開する
+3. 展開したフォルダをカメラに転送（scp または SDカード経由）
+   ```sh
+   scp -r raptor-t31-t8410x root@<camera_ip>:/tmp/
    ```
-3. ブラウザで `http://<camera_ip>/webrtc` を開く
+4. カメラ上で実行:
+   ```sh
+   cd /tmp/raptor-t31-t8410x
+   sh local-install.sh
+   ```
+5. ブラウザで `http://<camera_ip>/webrtc` を開く
 
 ## 遅延性能
 
@@ -24,10 +29,10 @@ Eufy IndoorCam E220 (T8410X) + Thingino 上で Raptor を使い、~55ms のWebRT
 
 ```
 t8410x/
-├── config/raptor.conf      # 低遅延設定
-├── deploy/deploy.sh        # ワンコマンドデプロイ
-├── deploy/start-raptor.sh  # カメラ上のinitスクリプト
-└── README.md               # この文書
+├── config/raptor.conf         # 低遅延設定
+├── deploy/local-install.sh    # カメラ上で実行するインストーラー
+├── deploy/start-raptor.sh     # カメラ上のinitスクリプト
+└── README.md                  # この文書
 ```
 
 ## 受信側コマンド

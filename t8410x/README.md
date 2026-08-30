@@ -5,17 +5,21 @@ Eufy IndoorCam E220 (T8410X) + Thingino 上で Raptor を使い、~55ms のWebRT
 ## クイックスタート
 
 1. PCで [Releases](../../releases) から `raptor-t31-t8410x.tar.gz` をダウンロード
-2. 展開する
-3. 展開したフォルダをカメラに転送（scp または SDカード経由）
+2. カメラに転送（scp または SDカード経由）
    ```sh
-   scp -r raptor-t31-t8410x root@<camera_ip>:/tmp/
+   scp raptor-t31-t8410x.tar.gz root@<camera_ip>:/tmp/
    ```
-4. カメラ上で実行:
+3. カメラ上で展開してインストール:
    ```sh
-   cd /tmp/raptor-t31-t8410x
+   cd /tmp
+   # BusyBox の tar は -z 非対応なので gunzip でパイプする
+   gunzip -c raptor-t31-t8410x.tar.gz | tar x
    sh local-install.sh
    ```
-5. ブラウザで `http://<camera_ip>/webrtc` を開く
+4. ブラウザで `http://<camera_ip>/webrtc` を開く
+
+> 注意: Thingino の tar は BusyBox 版なので `tar xzf` は使えません。
+> `gunzip -c <file>.tar.gz | tar x` または `zcat <file>.tar.gz | tar x` を使ってください。
 
 ## 遅延性能
 
@@ -57,8 +61,9 @@ mpv --no-cache --untimed --profile=low-latency rtsp://<camera_ip>/stream0
 
 ## 元に戻す
 
-```bash
-ssh root@<camera_ip>
+カメラ上で実行:
+
+```sh
 /etc/init.d/S31raptor stop
 rm /etc/init.d/S31raptor
 chmod +x /etc/init.d/S95prudynt
